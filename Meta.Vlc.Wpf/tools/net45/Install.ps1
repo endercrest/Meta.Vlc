@@ -1,6 +1,7 @@
 param($installPath, $toolsPath, $package, $project)
 
-$allowedReferences = @("Meta.Vlc.Wpf, Version=16.5.1.0, Culture=neutral, processorArchitecture=x86")
+$allowedReferences = @("Meta.Vlc.Wpf, Version=16.5.1.0, Culture=neutral, processorArchitecture=x86",
+					"Meta.Vlc.Wpf, Version=16.5.1.0, Culture=neutral, processorArchitecture=MSIL")
 
 # Full assembly name is required
 Add-Type -AssemblyName 'Microsoft.Build, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
@@ -41,11 +42,14 @@ if($allProjects.MoveNext())
 
             $metaData = new-object "System.Collections.Generic.Dictionary``2[[System.String, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089],[System.String, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]"
             $metaData.Add("HintPath", $x86)
-            $currentProject.AddItem('Reference', $Reference.Xml.Include, $metaData)
+			$newInclude = $Reference.Xml.Include -replace "MSIL", "x86"
+            $currentProject.AddItem('Reference', $newInclude, $metaData)
 
-            $newReference = $currentProject.GetItems('Reference') | ? {($_.Xml.Include -eq $Reference.Xml.Include) -and ($_.GetMetadataValue("HintPath") -eq $x86)} | Select-Object -First 1
+            $newReference = $currentProject.GetItems('Reference') | ? {($_.Xml.Include -eq $newInclude) -and ($_.GetMetadataValue("HintPath") -eq $x86)} | Select-Object -First 1
 
             $newReference.Xml.Condition = "'TargetPlatform' == 'x86'"
+
+			Exit
         }
 
         #If it is x86 specific add condition 
@@ -68,11 +72,14 @@ if($allProjects.MoveNext())
 
             $metaData = new-object "System.Collections.Generic.Dictionary``2[[System.String, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089],[System.String, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]"
             $metaData.Add("HintPath", $x64)
-            $currentProject.AddItem('Reference', $Reference.Xml.Include, $metaData)
+			$newInclude = $Reference.Xml.Include -replace "x86", "MSIL"
+            $currentProject.AddItem('Reference', $newInclude, $metaData)
 
-            $newReference = $currentProject.GetItems('Reference') | ? {($_.Xml.Include -eq $Reference.Xml.Include) -and ($_.GetMetadataValue("HintPath") -eq $x64)} | Select-Object -First 1
+            $newReference = $currentProject.GetItems('Reference') | ? {($_.Xml.Include -eq $newInclude) -and ($_.GetMetadataValue("HintPath") -eq $x64)} | Select-Object -First 1
 
-            $newReference.Xml.Condition = "'TargetPlatform' != 'x86'"           
+            $newReference.Xml.Condition = "'TargetPlatform' != 'x86'"   
+			
+			Exit
         }
     }
 }
